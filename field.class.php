@@ -188,7 +188,7 @@ class profile_field_hijridate extends profile_field_base {
      * @return array Associative array of error messages.
      */
     public function edit_validate_field($usernew) {
-        $errors = [];
+        $errors = parent::edit_validate_field($usernew);
 
         $val = isset($usernew->{$this->inputname}) ? $usernew->{$this->inputname} : null;
         $day = (is_array($val) && !empty($val['day'])) ? (int)$val['day'] : 0;
@@ -209,8 +209,8 @@ class profile_field_hijridate extends profile_field_base {
         }
 
         if ($isallfilled) {
-            $startyear = !empty($this->field->param1) ? (int)$this->field->param1 : 1300;
-            $endyear = !empty($this->field->param2) ? (int)$this->field->param2 : 1500;
+            $startyear = !empty($this->field->param1) ? (int)$this->field->param1 : 1350;
+            $endyear = !empty($this->field->param2) ? (int)$this->field->param2 : 1470;
 
             if (!\profilefield_hijridate\helper\umalqura::validate_hijri_date($year, $month, $day, $startyear, $endyear)) {
                 $errors[$this->inputname] = get_string('err_invaliddate', 'profilefield_hijridate');

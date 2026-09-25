@@ -57,80 +57,84 @@ class user_observer {
             return;
         }
 
-        $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0]);
-        if (!$user) {
-            return;
-        }
-
-        // Find all profile fields of type hijridate.
-        $hijrifields = $DB->get_records('user_info_field', ['datatype' => 'hijridate']);
-        if (empty($hijrifields)) {
-            return;
-        }
-
-        foreach ($hijrifields as $field) {
-            $mode = isset($field->param3) ? (int)$field->param3 : 0;
-            // Mode 1: Auto-convert with override allowed; Mode 2: Strictly derived.
-            if ($mode !== 1 && $mode !== 2) {
-                continue;
+        try {
+            $user = $DB->get_record('user', ['id' => $userid, 'deleted' => 0]);
+            if (!$user) {
+                return;
             }
 
-            $sourceshortname = !empty($field->param4) ? trim($field->param4) : '';
-            if (empty($sourceshortname)) {
-                continue;
+            // Find all profile fields of type hijridate.
+            $hijrifields = $DB->get_records('user_info_field', ['datatype' => 'hijridate']);
+            if (empty($hijrifields)) {
+                return;
             }
 
-            $rawgregorian = null;
-
-            // First check custom profile fields.
-            $sourcefield = $DB->get_record('user_info_field', ['shortname' => $sourceshortname]);
-            if ($sourcefield) {
-                $sourcedata = $DB->get_record('user_info_data', [
-                    'userid'  => $userid,
-                    'fieldid' => $sourcefield->id,
-                ]);
-                if ($sourcedata && !empty($sourcedata->data)) {
-                    $rawgregorian = $sourcedata->data;
+            foreach ($hijrifields as $field) {
+                $mode = isset($field->param3) ? (int)$field->param3 : 0;
+                // Mode 1: Auto-convert with override allowed; Mode 2: Strictly derived.
+                if ($mode !== 1 && $mode !== 2) {
+                    continue;
                 }
-            } else if (isset($user->{$sourceshortname}) && !empty($user->{$sourceshortname})) {
-                // Check if it's a standard user column (e.g. timecreated or custom column).
-                $rawgregorian = $user->{$sourceshortname};
-            }
 
-            if (empty($rawgregorian)) {
-                continue;
-            }
+                $sourceshortname = !empty($field->param4) ? trim($field->param4) : '';
+                if (empty($sourceshortname)) {
+                    continue;
+                }
 
-            // Convert Gregorian date to Hijri canonical format.
-            $hijri = \profilefield_hijridate\helper\umalqura::gregorian_to_hijri($rawgregorian);
-            $calculatedhijri = $hijri['formatted'];
+                $rawgregorian = null;
 
-            $existing = $DB->get_record('user_info_data', [
-                'userid'  => $userid,
-                'fieldid' => $field->id,
-            ]);
+                // First check custom profile fields.
+                $sourcefield = $DB->get_record('user_info_field', ['shortname' => $sourceshortname]);
+                if ($sourcefield) {
+                    $sourcedata = $DB->get_record('user_info_data', [
+                        'userid'  => $userid,
+                        'fieldid' => $sourcefield->id,
+                    ]);
+                    if ($sourcedata && !empty($sourcedata->data)) {
+                        $rawgregorian = $sourcedata->data;
+                    }
+                } else if (isset($user->{$sourceshortname}) && !empty($user->{$sourceshortname})) {
+                    // Check if it's a standard user column (e.g. timecreated or custom column).
+                    $rawgregorian = $user->{$sourceshortname};
+                }
 
-            if ($existing) {
-                if ($mode === 2) {
-                    // Strictly derived: Always sync with calculated Hijri date.
-                    if ($existing->data !== $calculatedhijri) {
+                if (empty($rawgregorian)) {
+                    continue;
+                }
+
+                // Convert Gregorian date to Hijri canonical format.
+                $hijri = \profilefield_hijridate\helper\umalqura::gregorian_to_hijri($rawgregorian);
+                $calculatedhijri = $hijri['formatted'];
+
+                $existing = $DB->get_record('user_info_data', [
+                    'userid'  => $userid,
+                    'fieldid' => $field->id,
+                ]);
+
+                if ($existing) {
+                    if ($mode === 2) {
+                        // Strictly derived: Always sync with calculated Hijri date.
+                        if ($existing->data !== $calculatedhijri) {
+                            $existing->data = $calculatedhijri;
+                            $DB->update_record('user_info_data', $existing);
+                        }
+                    } else if ($mode === 1 && empty($existing->data)) {
+                        // Mode 1: Only auto-populate if currently empty (preserves manual overrides).
                         $existing->data = $calculatedhijri;
                         $DB->update_record('user_info_data', $existing);
                     }
-                } else if ($mode === 1 && empty($existing->data)) {
-                    // Mode 1: Only auto-populate if currently empty (preserves manual overrides).
-                    $existing->data = $calculatedhijri;
-                    $DB->update_record('user_info_data', $existing);
+                } else {
+                    $newrecord = (object)[
+                        'userid'     => $userid,
+                        'fieldid'    => $field->id,
+                        'data'       => $calculatedhijri,
+                        'dataformat' => 0,
+                    ];
+                    $DB->insert_record('user_info_data', $newrecord);
                 }
-            } else {
-                $newrecord = (object)[
-                    'userid'     => $userid,
-                    'fieldid'    => $field->id,
-                    'data'       => $calculatedhijri,
-                    'dataformat' => 0,
-                ];
-                $DB->insert_record('user_info_data', $newrecord);
             }
+        } catch (\Throwable $e) {
+            debugging('Error in profilefield_hijridate user sync: ' . $e->getMessage(), DEBUG_DEVELOPER);
         }
     }
 }

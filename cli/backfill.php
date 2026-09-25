@@ -105,6 +105,16 @@ foreach ($hijrifields as $hijrifield) {
 
     // Check if source field is in user_info_field or user table.
     $sourcefield = $DB->get_record('user_info_field', ['shortname' => $sourceshortname]);
+    $userfields = 'id, username';
+    if (!$sourcefield) {
+        $usercolumns = $DB->get_columns('user');
+        if (isset($usercolumns[$sourceshortname])) {
+            $userfields .= ', ' . $sourceshortname;
+        } else {
+            cli_writeln("  [WARNING] Source field '{$sourceshortname}' not found in custom profile fields or user table. Skipping.");
+            continue;
+        }
+    }
 
     $totalupdated = 0;
     $totalskipped = 0;
@@ -116,7 +126,7 @@ foreach ($hijrifields as $hijrifield) {
     cli_writeln("  Total active users to scan: {$totalusers}");
 
     while ($offset < $totalusers) {
-        $users = $DB->get_records('user', ['deleted' => 0], 'id ASC', 'id, username', $offset, $batchsize);
+        $users = $DB->get_records('user', ['deleted' => 0], 'id ASC', $userfields, $offset, $batchsize);
         if (empty($users)) {
             break;
         }
