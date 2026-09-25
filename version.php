@@ -29,3 +29,4 @@ $plugin->requires  = 2022112800; // Moodle 4.1+ (LTS).
 $plugin->component = 'profilefield_hijridate';
 $plugin->maturity  = MATURITY_STABLE;
 $plugin->release   = 'v1.0 (Build 2026092500)';
+$plugin->supported = [401, 502];

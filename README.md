@@ -1,6 +1,17 @@
 # Moodle Profile Field: Hijri Date (`profilefield_hijridate`)
 
+[![Moodle Plugin](https://img.shields.io/badge/Moodle-4.1%20to%205.x-orange.svg)](https://moodle.org/plugins/)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+
 A native Moodle custom user profile field plugin implementing the official Saudi **Umm al-Qura Calendar Engine** (`islamic-umalqura`), providing manual selection, automatic Gregorian-to-Hijri derivation, event-driven profile syncing, GDPR/Privacy API compliance, AMD frontend converter, and an administrative backfill CLI.
+
+---
+
+## Requirements
+
+- **Moodle**: 4.1 (LTS), 4.2, 4.3, 4.4, 4.5, 5.0, or later
+- **PHP**: 8.1, 8.2, 8.3, or 8.4
+- **PHP Extension**: `ext-intl` (compiled with ICU library supporting `islamic-umalqura`, standard in modern PHP distributions)
 
 ---
 
@@ -55,7 +66,8 @@ user/profile/field/hijridate/
 │   ├── src/
 │   │   └── converter.js           # Real-time client-side auto-converter
 │   └── build/
-│       └── converter.min.js       # Minified AMD bundle
+│       ├── converter.min.js       # Minified AMD bundle
+│       └── converter.min.js.map   # Source map
 ├── cli/
 │   └── backfill.php               # CLI tool to backfill existing users
 └── tests/
@@ -66,11 +78,11 @@ user/profile/field/hijridate/
 
 ## Installation
 
-1. Copy or clone the plugin into your Moodle installation under:
+1. Download or clone this repository into your Moodle installation:
    ```bash
-   user/profile/field/hijridate
+   git clone https://github.com/Smartlearn-edu/moodle-profilefield_hijridate.git user/profile/field/hijridate
    ```
-2. Navigate to **Site Administration $\rightarrow$ Notifications** to complete the database upgrade.
+2. Log in as Site Administrator and navigate to **Site Administration $\rightarrow$ Notifications** to complete the database installation.
 
 ---
 
@@ -78,7 +90,7 @@ user/profile/field/hijridate/
 
 1. Go to **Site Administration $\rightarrow$ Users $\rightarrow$ Accounts $\rightarrow$ User profile fields**.
 2. Select **Create a new profile field $\rightarrow$ Hijri date**.
-3. Configure the specific settings:
+3. Configure the settings:
    - **Start Year**: Earliest Hijri year selectable (default: 1350 AH).
    - **End Year**: Latest Hijri year selectable (default: Current Year + 5).
    - **Conversion Mode**:
@@ -106,6 +118,24 @@ php user/profile/field/hijridate/cli/backfill.php --field=dob_hijri
 
 # Force overwrite all dates from source field 'dob':
 php user/profile/field/hijridate/cli/backfill.php --field=dob_hijri --source=dob --override
+```
+
+---
+
+## Privacy API (GDPR)
+
+This plugin fully supports the Moodle Privacy API:
+- Stores user Hijri date data in `{user_info_data}` linked to the user context.
+- Exports user date records during Moodle Data Privacy export requests.
+- Deletes user records when account deletion is requested.
+
+---
+
+## Testing
+
+Run PHPUnit tests via Moodle CLI:
+```bash
+vendor/bin/phpunit --filter profilefield_hijridate
 ```
 
 ---
