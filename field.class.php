@@ -221,20 +221,30 @@ class profile_field_hijridate extends profile_field_base {
     }
 
     /**
-     * Checks if the field is empty in submitted form data.
+     * Check if the field data is considered empty.
      *
-     * @param stdClass $usernew The submitted data.
      * @return bool True if empty.
      */
-    public function is_empty($usernew) {
-        if (!isset($usernew->{$this->inputname})) {
-            return true;
-        }
-        $val = $usernew->{$this->inputname};
-        if (is_array($val)) {
-            return empty($val['day']) || empty($val['month']) || empty($val['year']);
-        }
-        return empty($val);
+    public function is_empty() {
+        return empty($this->data);
+    }
+
+    /**
+     * Return the field type and null properties.
+     *
+     * @return array The param type and null property.
+     */
+    public function get_field_properties() {
+        return [PARAM_TEXT, NULL_NOT_ALLOWED];
+    }
+
+    /**
+     * Check if the field should convert the raw data into user-friendly data when exporting.
+     *
+     * @return bool True.
+     */
+    public function is_transform_supported(): bool {
+        return true;
     }
 
     /**
